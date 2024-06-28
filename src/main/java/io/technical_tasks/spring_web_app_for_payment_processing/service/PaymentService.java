@@ -21,11 +21,13 @@ import java.util.List;
 @Service
 public class PaymentService {
 
-    @Autowired
-    private PaymentRepository paymentRepository;
+    private final PaymentRepository paymentRepository;
+    private final GeoIPService geoIPService;
 
-    @Autowired
-    private GeoIPService geoIPService;
+    public PaymentService(PaymentRepository paymentRepository, GeoIPService geoIPService) {
+        this.paymentRepository = paymentRepository;
+        this.geoIPService = geoIPService;
+    }
 
     @Transactional
     public Payment createPayment(PaymentRequest paymentRequest, HttpServletRequest request) {

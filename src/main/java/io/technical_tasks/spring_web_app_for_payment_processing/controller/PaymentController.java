@@ -21,8 +21,11 @@ import java.util.Map;
 @RestController
 public class PaymentController {
 
-    @Autowired
-    private PaymentService paymentService;
+    private final PaymentService paymentService;
+
+    public PaymentController(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/payments")
