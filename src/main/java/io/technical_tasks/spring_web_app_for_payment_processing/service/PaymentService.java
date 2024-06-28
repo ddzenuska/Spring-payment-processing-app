@@ -1,5 +1,6 @@
 package io.technical_tasks.spring_web_app_for_payment_processing.service;
 
+import com.opencsv.CSVReader;
 import io.technical_tasks.spring_web_app_for_payment_processing.payment.Payment;
 import io.technical_tasks.spring_web_app_for_payment_processing.payment.PaymentRequest;
 import io.technical_tasks.spring_web_app_for_payment_processing.repository.PaymentRepository;
@@ -7,12 +8,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
@@ -62,41 +61,32 @@ public class PaymentService {
 
     @Transactional
     public String readCSVPaymentFile(MultipartFile file, HttpServletRequest request) {
-        List<String> errors = new ArrayList<>();
-        PaymentRequest paymentRequest = new PaymentRequest();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
+             CSVReader csvReader = new CSVReader(reader)) {
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-            String line;
-            boolean isFirstLine = true;
+            String[] nextRecord;
+            List<PaymentRequest> paymentRequests = new ArrayList<>();
+            csvReader.readNext();
 
-            while ((line = reader.readLine()) != null) {
-                if (isFirstLine) {
-                    isFirstLine = false;
-                    continue;
+            PaymentRequest paymentRequest = null;
+            while ((nextRecord = csvReader.readNext()) != null) {
+                if (nextRecord.length < 2) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid CSV format");
                 }
 
-                String[] fields = line.split(",");
+                String amountStr = nextRecord[0].trim();
+                String debtorIban = nextRecord[1].trim();
 
-                if (fields.length != 2) {
-                    errors.add("Invalid line format: " + line);
-                    continue;
-                }
+                BigDecimal amount = new BigDecimal(amountStr);
 
-                try {
-                    paymentRequest.setAmount(new BigDecimal(fields[0].trim()));
-                    paymentRequest.setDebtorIban(fields[1].trim());
-
-                    createPayment(paymentRequest, request);
-                } catch (Exception e) {
-                    errors.add("Error processing line: " + line + " - " + e.getMessage());
-                }
+                paymentRequest = new PaymentRequest();
+                paymentRequest.setAmount(amount);
+                paymentRequest.setDebtorIban(debtorIban);
+                paymentRequests.add(paymentRequest);
             }
-
-            if (!errors.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Some payments could not be processed: " + String.join("; ", errors));
-            }
-
+            createPayment(paymentRequest, request);
             return "Payments created successfully. Payment amount: " + paymentRequest.getAmount() + " , debtor IBAN: " + paymentRequest.getDebtorIban();
+
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to process CSV file: " + e.getMessage());
         }
