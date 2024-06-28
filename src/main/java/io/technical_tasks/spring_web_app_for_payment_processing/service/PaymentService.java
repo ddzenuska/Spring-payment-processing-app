@@ -5,6 +5,8 @@ import io.technical_tasks.spring_web_app_for_payment_processing.payment.PaymentR
 import io.technical_tasks.spring_web_app_for_payment_processing.repository.PaymentRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final GeoIPService geoIPService;
+    private static final Logger logger = LoggerFactory.getLogger(GeoIPService.class);
 
     public PaymentService(PaymentRepository paymentRepository, GeoIPService geoIPService) {
         this.paymentRepository = paymentRepository;
@@ -36,7 +39,7 @@ public class PaymentService {
             ip = request.getRemoteAddr();
         }
 
-        System.out.println("Using IP address: " + ip);
+        logger.info("Using IP address: {}", ip);
 
         String countryCode = geoIPService.getCountryCode(ip);
 
