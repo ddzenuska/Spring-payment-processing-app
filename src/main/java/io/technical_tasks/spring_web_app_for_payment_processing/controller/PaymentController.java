@@ -39,7 +39,7 @@ public class PaymentController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/payment-files")
-    public String CSVPaymentFile(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+    public String csvPaymentFile(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         return paymentService.readCSVPaymentFile(file, request);
     }
 
